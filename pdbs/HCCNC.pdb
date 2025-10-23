@@ -1,13 +1,6 @@
-HEADER
-REMARK HCCNC opt freq calc
-HETATM    1  C           1      -2.802   0.638   0.000                       C
-HETATM    2  C           1      -1.593   0.641   0.000                       C
-HETATM    3  N           1      -0.286   0.645   0.000                       N
-HETATM    4  C           1       0.897   0.649   0.000                       C
-HETATM    5  H           1      -3.859   0.634   0.000                       H
-CONECT    1    2    5
-CONECT    2    1    3
-CONECT    3    2    4
-CONECT    4    3
-CONECT    5    1
+HETATM    1  C1  UNL     1      -2.805   0.638   0.000  1.00  0.00           C  
+HETATM    2  C2  UNL     1      -1.598   0.641   0.000  1.00  0.00           C  
+HETATM    3  N1  UNL     1      -0.278   0.645   0.000  1.00  0.00           N  
+HETATM    4  C3  UNL     1       0.906   0.649   0.000  1.00  0.00           C  
+HETATM    5  H1  UNL     1      -3.867   0.634   0.000  1.00  0.00           H  
 END

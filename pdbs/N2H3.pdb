@@ -1,13 +1,6 @@
-HEADER
-REMARK N2H3 opt freq calc
-HETATM    1  N           1      -1.212  -1.187   0.000                       N
-HETATM    2  N           1      -1.306   0.137   0.000                       N
-HETATM    3  H           1      -0.345  -1.691   0.000                       H
-HETATM    4  H           1      -2.069  -1.700   0.000                       H
-HETATM    5  H           1      -0.354   0.487   0.000                       H
-CONECT    1    2    3    4
-CONECT    2    1    5
-CONECT    3    1
-CONECT    4    1
-CONECT    5    2
+HETATM    1  N1  UNL     1      -1.214  -1.192   0.000  1.00  0.00           N  
+HETATM    2  N2  UNL     1      -1.309   0.146   0.000  1.00  0.00           N  
+HETATM    3  H1  UNL     1      -0.343  -1.692   0.000  1.00  0.00           H  
+HETATM    4  H2  UNL     1      -2.072  -1.707   0.000  1.00  0.00           H  
+HETATM    5  H3  UNL     1      -0.349   0.490   0.000  1.00  0.00           H  
 END

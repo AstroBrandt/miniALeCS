@@ -1,15 +1,7 @@
-HEADER
-REMARK CH3NH opt freq calc
-HETATM    1  C           1      -0.010  -3.412  -0.004                       C
-HETATM    2  N           1       0.453  -4.766   0.106                       N
-HETATM    3  H           1      -1.061  -3.380  -0.299                       H
-HETATM    4  H           1       0.545  -2.870  -0.774                       H
-HETATM    5  H           1       0.105  -2.893   0.941                       H
-HETATM    6  H           1       0.321  -5.199  -0.805                       H
-CONECT    1    2    3    4    5
-CONECT    2    1    6
-CONECT    3    1
-CONECT    4    1
-CONECT    5    1
-CONECT    6    2
+HETATM    1  C1  UNL     1      -0.010  -3.410  -0.003  1.00  0.00           C  
+HETATM    2  N1  UNL     1       0.456  -4.772   0.110  1.00  0.00           N  
+HETATM    3  H1  UNL     1      -1.066  -3.378  -0.301  1.00  0.00           H  
+HETATM    4  H2  UNL     1       0.546  -2.867  -0.777  1.00  0.00           H  
+HETATM    5  H3  UNL     1       0.105  -2.890   0.946  1.00  0.00           H  
+HETATM    6  H4  UNL     1       0.321  -5.202  -0.809  1.00  0.00           H  
 END

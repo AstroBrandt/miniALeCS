@@ -1,13 +1,6 @@
-HEADER
-REMARK C2H3 opt freq calc
-HETATM    1  C           1       0.103  -0.064   0.028                       C
-HETATM    2  C           1      -0.397   1.112   0.017                       C
-HETATM    3  H           1      -0.196  -1.062  -0.221                       H
-HETATM    4  H           1       0.162   1.976   0.340                       H
-HETATM    5  H           1      -1.413   1.283  -0.321                       H
-CONECT    1    2    3
-CONECT    2    1    4    5
-CONECT    3    1
-CONECT    4    2
-CONECT    5    2
+HETATM    1  C1  UNL     1       0.120  -0.083   0.031  1.00  0.00           C  
+HETATM    2  C2  UNL     1      -0.400   1.123   0.017  1.00  0.00           C  
+HETATM    3  H1  UNL     1      -0.200  -1.081  -0.226  1.00  0.00           H  
+HETATM    4  H2  UNL     1       0.159   1.993   0.341  1.00  0.00           H  
+HETATM    5  H3  UNL     1      -1.421   1.293  -0.323  1.00  0.00           H  
 END

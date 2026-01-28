@@ -1,0 +1,9 @@
+[theme]
+base="light"
+primaryColor="#1d28ff"
+backgroundColor="#ffffff"
+secondaryBackgroundColor="#f0f2f6"
+
+[server]
+# This prevents the app from switching based on the user's OS settings
+runOnSave = true

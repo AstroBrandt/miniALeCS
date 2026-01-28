@@ -1,174 +1,146 @@
-from glob import glob
+import os
+import glob
 import numpy as np
 import plotly.graph_objects as go
 import streamlit as st
-from streamlit.components.v1 import html
-import streamlit.components.v1 as components
-from io import BytesIO
-import json
 import pandas as pd
-import os
+import streamlit.components.v1 as components
 
-a0 = 0.529177211  # Angstroms
-a02 = a0**2
-
+# --- CONFIG & CONSTANTS ---
 st.set_page_config(
     layout="centered", page_title="ALeCS Database", page_icon=":milky_way:"
 )
-aweights = {"H": 1, "C": 12, "N": 14, "O": 16, "S": 32, "P": 31}
-latexMols = {}
-latexMap = []
-molsLatex = {}
-with open("molLatex.txt", "r") as lm:
-    lines = lm.readlines()
-    for i, li in enumerate(lines):
-        s = li.split()
-        latexMols[s[0]] = s[1]
-        latexMap.append(s[1])
-        molsLatex[i] = s[0]
 
-mols = []
-molsLabels = []
-xsData = {}
-pdbStrings = {}
-for file in glob("BEB/*.xs"):
-    dat = np.loadtxt(file, skiprows=2)
-    moli = file.split("/")[-1].split(".")[0]
+A0 = 0.529177211  # Angstroms
+A02 = A0**2
 
-    if not os.path.exists("pdbs/" + moli + ".pdb"):
-        continue
 
-    mols.append(moli)
-    molsLabels.append(latexMols[moli])
-    xsShape = dat.shape
-    xsDi = {}
-    xsDi["E"] = dat[:, 0]
-    xsDi["xs"] = dat[:, 1] * a02
-    indE = np.where(xsDi["E"] > 5e3)[0][0]
+# --- CACHED DATA LOADING ---
+@st.cache_data
+def load_assets():
+    """Loads JS and CSS files into memory to inject into the iframe."""
+    try:
+        with open("assets/uis/ChemDoodleWeb.js", "r") as f:
+            js = f.read()
+        return js
+    except FileNotFoundError:
+        return ""
 
-    xsDi["E"] = xsDi["E"][:indE]
-    xsDi["xs"] = xsDi["xs"][:indE]
-    xsData[moli] = xsDi
-    pdbi = """%s""" % (open("pdbs/" + moli + ".pdb", "r").read())
-    pdbStrings[moli] = "pdbs/" + moli + ".pdb"  # json.dumps(pdbi)
 
+@st.cache_data
+def load_molecule_data():
+    """Reads physics data and PDB paths once and caches them."""
+    # Load LaTeX mappings
+    latex_mols = {}
+    if os.path.exists("molLatex.txt"):
+        with open("molLatex.txt", "r") as lm:
+            for line in lm:
+                s = line.split()
+                if len(s) >= 2:
+                    latex_mols[s[0]] = s[1]
+
+    mols = []
+    xs_data = {}
+    pdb_paths = {}
+
+    # Scan for data files
+    for file_path in glob.glob("BEB/*.xs"):
+        # Use basename to prevent path traversal
+        filename = os.path.basename(file_path)
+        moli = filename.split(".")[0]
+
+        pdb_file = f"pdbs/{moli}.pdb"
+        if not os.path.exists(pdb_file):
+            continue
+
+        # Load cross-section data
+        try:
+            dat = np.loadtxt(file_path, skiprows=2)
+            if dat.size == 0:
+                continue
+
+            # Energy limit logic
+            e_vals = dat[:, 0]
+            xs_vals = dat[:, 1] * A02
+            mask = e_vals <= 5000
+
+            mols.append(moli)
+            xs_data[moli] = {"E": e_vals[mask], "xs": xs_vals[mask]}
+            # Store the actual PDB content for JS injection
+            with open(pdb_file, "r") as f:
+                pdb_paths[moli] = f.read().replace("\n", "\\n")
+        except Exception as e:
+            st.error(f"Error loading {moli}: {e}")
+
+    return sorted(mols), latex_mols, xs_data, pdb_paths
+
+
+# Initialize data
+mols_list, latex_map, xs_data, pdb_contents = load_molecule_data()
+chemdoodle_js = load_assets()
+
+# --- UI ---
 st.markdown("### Select molecules to show the cross sections")
-molChoices = st.multiselect("Molecules", sorted(mols), max_selections=5)
-htmlStr = """
+mol_choices = st.multiselect("Molecules", mols_list, max_selections=5)
+
+if mol_choices:
+    # Build JS for multiple canvases
+    js_canvases = ""
+    div_html = ""
+
+    for i, moli in enumerate(mol_choices):
+        pdb_data = pdb_contents.get(moli, "")
+        div_html += f'<div class="col-2" id="canvas_container_{i}"><canvas id="canvas3d_{i}"></canvas></div>'
+        js_canvases += f"""
+            var rotator{i} = new ChemDoodle.RotatorCanvas3D('canvas3d_{i}', 125, 125);
+            rotator{i}.styles.set3DRepresentation('Ball and Stick');
+            rotator{i}.styles.backgroundColor = 'transparent';
+            var mol{i} = ChemDoodle.readPDB('{pdb_data}');
+            rotator{i}.loadMolecule(mol{i});
+            rotator{i}.startAnimation();
+        """
+
+    full_html = f"""
         <html>
+        <head>
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+            <script>{chemdoodle_js}</script>
+            <style>canvas {{ width: 125px; height: 125px; }}</style>
+            <style>
+                .row {{ display: flex; justify-content: center; align-items: center; flex-wrap: wrap; }}
+            </style>
+        </head>
         <body>
+            <div class="container-fluid"><div class="row">{div_html}</div></div>
+            <script>{js_canvases}</script>
         </body>
         </html>
     """
-if len(molChoices) > 0:
-    htmlStr = """
-        <html>
-        <body>
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktQOp6b7In1Zl3/Jr59b6EGGoI1aFkw7cmDA6j6gD" crossorigin="anonymous">
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
-        <link rel="stylesheet" href="./assets/uis/ChemDoodleWeb.css" type="text/css">
-        <script type="text/javascript" src="./assets/uis/ChemDoodleWeb.js"></script>
-    """
-    divStrngs = """"""
-    jsStrings = """<script>
-    """
-    for i, moli in enumerate(molChoices):
-        jsStrings += """
-            var rotator%d = new ChemDoodle.RotatorCanvas3D('canvas3d%d', 125, 125);
-            rotator%d.emptyMessage = 'No Data Loaded!';
-            rotator%d.styles.set3DRepresentation('Ball and Stick');
-            rotator%d.styles.backgroundColor = 'transparent';
-            rotator%d.styles.atoms_useJMOLColors = true;
-            var mol = ChemDoodle.readPDB('%s');
-            rotator%d.loadMolecule(mol);
-            rotator%d.startAnimation();
-        """ % (
-            i,
-            i,
-            i,
-            i,
-            i,
-            i,
-            pdbStrings[moli],
-            i,
-            i,
-        )
-        divStrngs += """
-                <div class="col-md-3 col-sm-6 col-xs-12" id="canvas3d%d">
-                   <!-- Will be filled by script -->
-                </div> 
-                """ % (
-            i
-        )
-    jsStrings += """
-        </script>
-    """
-    htmlStr += (
-        """
-        <div class="container">
-            <center>
-            <div class="row">
-                %s
-            </div>
-            </center>
-        </div>"""
-        % divStrngs
-    )
-    htmlStr += jsStrings
-    htmlStr += """
-    </body>
-    </html>"""
-components.html(htmlStr, height=130)
+    components.html(full_html, height=150)
 
-fig = go.Figure()
-for molChoice in molChoices:
-    fig.add_trace(
-        go.Scatter(
-            x=xsData[molChoice]["E"],
-            y=xsData[molChoice]["xs"],
-            mode="lines",
-            name=molChoice,
+    # --- PLOTLY CHART ---
+    fig = go.Figure()
+    for m in mol_choices:
+        fig.add_trace(
+            go.Scatter(x=xs_data[m]["E"], y=xs_data[m]["xs"], mode="lines", name=m)
         )
-    )
-fig.update_layout(
-    title="BEB Cross sections",
-    xaxis_title="Energy (eV)",
-    yaxis_title="Cross section (Å²)",
-    font=dict(
-        size=18,
-    ),
-)
-fig.update_xaxes(
-    type="log",
-    exponentformat="power",
-    showexponent="all",
-    showgrid=True,
-    tickfont=dict(
-        size=16,
-    ),
-)
-fig.update_yaxes(
-    type="linear",
-    exponentformat="power",
-    showexponent="all",
-    showgrid=True,
-    tickfont=dict(
-        size=16,
-    ),
-)
-st.plotly_chart(fig, use_container_width=True)
 
-if len(molChoices) > 0:
-    df = pd.DataFrame()
-    df["Energy"] = xsData[molChoices[0]]["E"]
-    for mi in molChoices:
-        df[mi] = xsData[mi]["xs"]
-    csvStr = df.to_csv(index=False).encode("utf-8")
-    headArr = ["E"] + molChoices
-    df.columns = headArr
+    fig.update_layout(
+        xaxis_title="Energy (eV)",
+        yaxis_title="Cross section (Å²)",
+        xaxis_type="log",
+        template="plotly_white",
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+    # --- DOWNLOAD DATA ---
+    df = pd.DataFrame({"Energy": xs_data[mol_choices[0]]["E"]})
+    for m in mol_choices:
+        df[m] = xs_data[m]["xs"]
+
     st.download_button(
-        label="Download data as CSV",
-        data=csvStr,
-        file_name="cross_sections.csv",
+        label="Download CSV",
+        data=df.to_csv(index=False),
+        file_name="data.csv",
         mime="text/csv",
     )
